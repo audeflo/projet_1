@@ -119,3 +119,13 @@ print(store.isnull().any())
 #     df_list.append(pd.read_csv(data_path + csv_file, encoding='ISO-8859-1'))
 
 # print(df_list)
+
+#                                              FUSION DATA
+
+# Fusionner les DataFrames par la colonne commune 
+df_1 = pd.merge(sales, customers, on='customer_id')
+df = pd.merge(df_1, product, on='product_id')
+
+# Afficher le résultat
+print(df)
+df.head()
