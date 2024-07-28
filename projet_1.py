@@ -129,3 +129,11 @@ df = pd.merge(df_1, product, on='product_id')
 # Afficher le résultat
 print(df)
 df.head()
+#vérification de doublon dans le dataframe
+dup = df.duplicated().any()
+dup
+#Changer le format des dates
+df['order_Date'] = pd.to_datetime(df['order_Date'], format='%m/%d/%Y')
+df['delivery_date'] = pd.to_datetime(df['delivery_date'], format='%m/%d/%Y')
+df['birthday'] = pd.to_datetime(df['birthday'], format='%m/%d/%Y')
+df
