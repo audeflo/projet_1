@@ -5,172 +5,138 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 
-# data_path = "C:/Users/HP/OneDrive/Documents/Bureau/projet_groupe_1/"
 
-# df_list = []
-# for csv_file in os.listdir(data_path):
-#   if csv_file.endswith('.csv'):
-#     df_list.append(pd.read_csv(data_path + csv_file, encoding='ISO-8859-1'))
+# ----------------------IMPORTATION DES DONNEES------------------------------
+def importation(path):
+    return pd.read_csv(path, encoding='ISO-8859-1')
 
-# print(df_list)
 
-# importation des données
-
-# CUSTOMERS
+# customers
 print("TABLE CUSTOMERS")
-cst_path = "C:/Users/HP/OneDrive/Documents/Bureau/projet_groupe_1/Customers.csv"
-
-customer = pd.read_csv(cst_path, encoding='ISO-8859-1')
-
-# print(customer.head())
+cst_path = "datasets/Customers.csv"
+customer = importation(cst_path)
 
 
-customer = customer.rename(columns={"CustomerKey": "customer_id", "Gender": "gender", "Name": "name", "State Code": "state_code", "State": "state", "Zip Code": "zip_code", "Continent": "continent","Birthday": "birthday"})
-print(customer.info())
-
-customer = pd.read_csv(cst_path, encoding='ISO-8859-1')
-
-# DATA
+# data
 print("TABLE DATA")
-
-dt_path = "C:/Users/HP/OneDrive/Documents/Bureau/projet_groupe_1/Data_Dictionary.csv"
-
-data = pd.read_csv(dt_path, encoding='ISO-8859-1')
+dt_path = "./datasets/Data_Dictionary.csv"
+data = importation(dt_path)
 
 
-# print(data.head())
-
-data = data.rename(columns={"Table": "table", "Field": "field", "Description": "description"})
-print(data.info())
-
-data = pd.read_csv(dt_path, encoding='ISO-8859-1')
-
-# LOAD DATA INFILE 'C:/Users/HP/OneDrive/Documents/Bureau/projet_groupe_1/Data_Dictionary.csv'
-# INTO TABLE data_dictionary
-# FIELDS TERMINATED BY ','
-# OPTIONALLY ENCLOSED BY '"'
-# LINES TERMINATED BY '\r\n'
-# IGNORE 1 ROWS;
-
-
-# EXCHANGE
-
+# exchange
 print("TABLE EXCHANGE")
-
-exc_path= "C:/Users/HP/OneDrive/Documents/Bureau/projet_groupe_1/Exchange_Rates.csv"
-
-exchange = pd.read_csv(exc_path, encoding='ISO-8859-1')
-
-# print(exchange.head())
-
-exchange = exchange.rename(columns={"Date": "date", "Currency": "currency", "Exchange": "exchange"})
-print(exchange.info())
-
-exchange = pd.read_csv(exc_path, encoding='ISO-8859-1')
-# CREATE TABLE exchange_rates ( date DATE, field_name VARCHAR(185), description TEXT);
-# LOAD DATA INFILE 'C:/Users/HP/OneDrive/Documents/Bureau/projet_groupe_1/Exchange_Rates.csv'
-# INTO TABLE exchange_rates
-# FIELDS TERMINATED BY ','
-# OPTIONALLY ENCLOSED BY '"'
-# LINES TERMINATED BY '\r\n'
-# IGNORE 1 ROWS;
+exc_path= "./datasets/Exchange_Rates.csv"
+exchange = importation(exc_path)
 
 
-# PRODUCT
-
+# product
 print("TABLE PRODUCT")
+prod_path= "./datasets/Products.csv"
+product = importation(prod_path)
 
-prod_path= "C:/Users/HP/OneDrive/Documents/Bureau/projet_groupe_1/Products.csv"
-
-product = pd.read_csv(prod_path, encoding='ISO-8859-1')
-
-# print(product.head())
-
-product = product.rename(columns={"ProductKey": "product_id", "Product Name": "Product_name", "Brand": "brand", "Color": "color", "Unit Cost USD": "unit_cost_USD", "Unit Price USD": "unit_price_USD", "SubcategoryKey": "subcategory_id","Subcategory": "subcategory", "CategoryKey": "Category_id", "Category":"category"})
-print(product.info())
-
-product = pd.read_csv(prod_path, encoding='ISO-8859-1')
-
-
-# SALES
-print("TABLE SALES")
-
-sls_path= "C:/Users/HP/OneDrive/Documents/Bureau/projet_groupe_1/Sales.csv"
-
-sales = pd.read_csv(sls_path, encoding='ISO-8859-1')
-
-# print(sales.head())
-
-sales = sales.rename(columns={"Order Number": "order_id", "Line Item": "line_itm", "Order Date": "order_Date", "Delivery Date": "delivery_date", "CustomerKey":"customer_id", "StoreKey": "store_id","ProductKey": "product_id", "Quantity" : "qtity", "Currency Code" : "currency_id"})
-print(sales.info())
-
-sales = pd.read_csv(sls_path, encoding='ISO-8859-1')
-
-
-# STORE
-print("TABLE STORE")
-
-str_path= "C:/Users/HP/OneDrive/Documents/Bureau/projet_groupe_1/Stores.csv"
-
-store = pd.read_csv(str_path, encoding='ISO-8859-1')
-
-# print(store.head())
-
-store = store.rename(columns={"StoreKey":"store_id","Country": "country","State" : "state","Square Meters": "square_meters","Open Date":"open_date"})
-print(store.info())
-store = pd.read_csv(str_path, encoding='ISO-8859-1')
-
-#  Verification des valeurs manquantes
-print("TABLE CUSTOMERS")
-
-print(customer.isnull().any())
-
-print("TABLE DATA")
-
-print(data.isnull().any())
-
-print("TABLE EXCHANGE")
-
-print(exchange.isnull().any())
-
-print("TABLE PRODUCT")
-
-print(product.isnull().any())
-
-print("TABLE SALES")
-
-print(sales.isnull().any())
-
-print("TABLE STORE")
-
-print(store.isnull().any())
-
-# suppression des lignes avec des valeurs manquantes
-
-# customer
-customer.dropna(inplace=True)
-customer = customer.dropna()
-customer.shape
 
 # sales
-sales.dropna(inplace=True)
-sales = sales.dropna()
-sales.shape
+print("TABLE SALES")
+sls_path= "./datasets/Sales.csv"
+sales = importation(sls_path)
+
 
 # store
-store.dropna(inplace=True)
-store = store.dropna()
-store.shape
-
-# Verification qu'il n'y a plus de valeurs manquantes
-print("TABLE CUSTOMERS")
-
-print(customer.isnull().any())
-
-print("TABLE SALES")
-
-print(sales.isnull().any())
-
 print("TABLE STORE")
+str_path= "./datasets/Stores.csv"
+store = importation(str_path)
 
-print(store.isnull().any())
+
+# ----------------------RENOMMER LES COLONNES------------------------------
+
+# customer
+customer= customer.rename(columns={"CustomerKey": "customer_id", "Gender": "gender", "Name": "name", "City":"cst_city","State Code": "cst_state_code", "State" : "cst_state","Zip Code":"cst_zip_code","Country" : "cst_country","Continent": "cst_continent","Birthday":"cst_birthday"})
+
+# data
+data = data.rename(columns={"Date" : "data_date","Currency" : "data_currency", "Exchange":"exchange"})
+
+# exchange
+exchange = exchange.rename(columns={"Date": "exchange_date", "Currency":"currency_code", "Exchange":"exchange"})
+
+# product
+product = product.rename(columns={"ProductKey": "product_id","Product Name": "product_name","Brand": "brand", "Color": "color", "Unit Cost USD": "unit_cost_USD", "Unit Price USD": "unit_price_USD", "SubcategoryKey": "subcategory_id","Subcategory": "subcategory", "CategoryKey": "category_id", "Category":"category"})
+
+# sales
+sales = sales.rename(columns={"Order Number" : "order_number","Line Item" : "line_item", "Order Date":"order_date", "Delivery Date":"delivery_date", "CustomerKey": "customer_id" , "StoreKey":"store_id" ,"ProductKey": "product_id","Quantity":"quantity", "Currency Code":"currency_code"})
+
+# store
+store = store.rename(columns={"StoreKey":"store_id", "State":"store_state", "Square Meters":"square_meters", "Open Date":"open_date"})
+
+
+# ----------------------INFORMATION SUR LES TYPES DE DONNEES------------------------------
+
+#print(customer.info())#
+#print(data.info())
+#print(exchange.info())
+#print(product.info())
+#print(sales.info())
+#print(store.info())
+
+# ----------------------MODIFICATION DES TYPES DE DONNEES NECESSAIRES------------------------------
+
+
+
+# customer
+customer['customer_id'] = customer['customer_id'].astype(str)
+customer['cst_birthday'] = pd.to_datetime(customer['cst_birthday'], format='%m/%d/%Y')
+
+#print(customer.info())
+
+
+# exchange
+exchange['exchange_date'] = pd.to_datetime(exchange['exchange_date'], format='%m/%d/%Y')
+
+#!!!!A FAIRE: transformer les "." en "," sans convertir le type de données dans la colonne exchange
+# print(exchange.info())
+
+
+# product
+product['product_id'] = product['product_id'].astype(str)
+product['unit_cost_USD'] = product['unit_cost_USD'].str.replace('$', '', regex=False)
+product['unit_cost_USD'] = product['unit_cost_USD'].str.replace(',', '', regex=False)
+product['unit_cost_USD'] = product['unit_cost_USD'].str.replace('.', ',', regex=False)
+product['unit_cost_USD'] = product['unit_cost_USD'].str.replace(',', '.', regex=False).astype(float)
+product['unit_price_USD'] = product['unit_price_USD'].str.replace('$', '', regex=False)
+product['unit_price_USD'] = product['unit_price_USD'].str.replace(',', '', regex=False)
+product['unit_price_USD'] = product['unit_price_USD'].str.replace('.', ',', regex=False)
+product['unit_price_USD'] = product['unit_price_USD'].str.replace(',', '.', regex=False).astype(float)
+product['subcategory_id'] = product['subcategory_id'].astype(str)
+product['category_id'] = product['category_id'].astype(str)
+
+#print(product.info())
+
+
+# sales
+
+sales['order_number'] = sales['order_number'].astype(str)
+sales['order_date'] = pd.to_datetime(sales['order_date'], format='%m/%d/%Y')
+sales['delivery_date'] = pd.to_datetime(sales['delivery_date'], format='%m/%d/%Y')
+sales['customer_id'] = sales['customer_id'].astype(str)
+sales['store_id'] = sales['store_id'].astype(str)
+sales['product_id'] = sales['product_id'].astype(str)
+
+#print(sales.info())
+
+
+# store
+store['store_id'] = store['store_id'].astype(str)
+#!!!!A FAIRE: transformer les "." en "," sans convertir le type de données dans la colonne square_meters
+store['open_date'] = pd.to_datetime(store['open_date'], format='%m/%d/%Y')
+
+#print(store.info())
+
+
+# ----------------------JOINTURE DES DATASETS------------------------------
+
+df_1 = pd.merge(sales, customer, how= "inner", on='customer_id')
+
+df_2 = pd.merge(df_1, store,how= "inner", on='store_id')
+
+df = pd.merge(df_2, product,how= "inner", on='product_id')
+
+print(df.info())
