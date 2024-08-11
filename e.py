@@ -107,7 +107,7 @@ store = store.rename(columns={"StoreKey":"store_id","State":"store_state", "Squa
 
 
 # ----------------------MODIFICATION DES TYPES DE DONNEES NECESSAIRES------------------------------
-# ----------------------MODIFICATION DES TYPES DE DONNEES NECESSAIRES------------------------------
+
 
 # customer
 customer['customer_id'] = customer['customer_id'].astype(str)
@@ -222,28 +222,31 @@ df = pd.merge(df_2, product,how= "inner", on='product_id')
 #df.head()
 
 df['order_year'] = df['order_date'].dt.year
-df['Month'] = df['order_date'].dt.to_period('M')
+df['Month'] = df['order_date'].dt.to_period('M').dt.to_timestamp()
 df['Revenue'] = df['quantity'] * df['unit_price_USD']
 # ----------------------CREATION DES GRAPHIQUES------------------------------
 # Interface Streamlit
-st.title("Tableau de Bord d'Analyse des Données Commerciales")
+#st.title("Tableau de Bord d'Analyse des Données Commerciales")
 st.markdown("""
 Ce tableau de bord vous permet d'explorer les données commerciales à travers divers graphiques interactifs.
-Utilisez les filtres et les graphiques pour obtenir des insights précieux sur le comportement des clients, les performances des produits, et l'efficacité des campagnes marketing.
+Utilisez les filtres et les graphiques pour obtenir des insights précieux sur le comportement des clients, les performances des produits.
 """)
 
 # Sidebar pour les filtres
 st.sidebar.header("Filtres")
 selected_category = st.sidebar.multiselect("Sélectionnez une ou plusieurs Catégories", df['category'].unique())
 selected_month = st.sidebar.multiselect("Sélectionnez un ou plusieurs Mois", df['Month'].astype(str).unique())
-selected_color = st.sidebar.multiselect("Sélectionnez un ou plusieurs Pays", df['color'].unique())
+selected_color = st.sidebar.multiselect("Sélectionnez une ou plusieurs Couleurs ", df['color'].unique())
 selected_year = st.sidebar.multiselect("Sélectionnez un ou plusieurs Années", df['order_year'].unique())
+selected_country = st.sidebar.multiselect("Sélectionnez un ou plusieurs Pays", df['cst_country'].unique())
+
 
 filtered_df = df[
     (df['category'].isin(selected_category) if selected_category else df['category'].notnull()) &
     (df['Month'].astype(str).isin(selected_month) if selected_month else df['Month'].notnull()) &
     (df['color'].isin(selected_color) if selected_color else df['color'].notnull())&
-    (df['order_year'].isin(selected_year) if selected_year else df['order_year'].notnull()) 
+    (df['order_year'].isin(selected_year) if selected_year else df['order_year'].notnull())&
+    (df['cst_country'].isin(selected_country) if selected_country else df['cst_country'].notnull()) 
     
 
 ]
@@ -258,19 +261,31 @@ sales['delivery_date'] = sales.apply(lambda row: row['order_date'] + pd.Timedelt
 
 print(f"Le temps de livraison moyen est de {mean_delivery_delay:.2f} jours.")
 # Calcul des ventes totales pour chaque transaction
+#df['total_sales'] = df['quantity'] * df['unit_price_USD']
 df['total_sales'] = df['quantity'] * df['unit_price_USD']
-
+# Vérifier si la colonne 'total_sales' est présente dans 'filtered_df'
+if 'total_sales' not in filtered_df.columns:
+    filtered_df['total_sales'] = filtered_df['quantity'] * filtered_df['unit_price_USD']
 # Calcul du chiffre d'affaires total
-total_revenue = df['total_sales'].sum()
+#total_revenue = df['total_sales'].sum()
+total_sales = filtered_df['total_sales'].sum()
 qty_sold = float(filtered_df['quantity'].sum())
 top_category = filtered_df['category'].mode().to_string(index=False)
 top_store = filtered_df['st_country'].mode().to_string(index=False)
+# Vérifier si la colonne 'delivery_delay' est présente dans 'filtered_df'
+if 'delivery_delay' not in filtered_df.columns:
+    filtered_df['delivery_delay'] = filtered_df['delivery_date'].fillna(pd.to_datetime('NaT')) - filtered_df['order_date']
+    filtered_df['delivery_delay'] = filtered_df['delivery_delay'].dt.days
+    mean_delivery_delay = filtered_df[filtered_df['delivery_delay'] >= 0]['delivery_delay'].mean()
+    filtered_df['delivery_delay'] = filtered_df['delivery_delay'].apply(lambda x: mean_delivery_delay if x < 0 else x)
+
+average_delivery_time = filtered_df['delivery_delay'].mean()
 # Affichage des KPI
 total1, total2, total3, total4, total5 = st.columns(5, gap="small")
 
 with total1:
     st.info('Ventes totales', icon="📈")
-    st.metric(label='', value=f"$ {total_revenue:,.0f}")
+    st.metric(label='', value=f"$ {total_sales:,.0f}")
 
 with total2:
     st.info('Qté vendue', icon="🛒")
@@ -285,77 +300,100 @@ with total4:
     st.metric(label='', value=top_store)
     
 with total5:
-    st.info('Temps de livraison moyen', icon="🚚")
-    st.metric(label='', value=mean_delivery_delay)
+    st.info('Temps de livraison ', icon="🚚")
+    st.metric(label='', value=f"{average_delivery_time:.2f} jours")
 
    
 # 1. Comprendre le Comportement des Clients
 #df['order_date'] = pd.to_datetime(df['order_date'], format='%m/%d/%Y')
 
-st.header("1. Comprendre le Comportement des Clients")
+#st.header("1. Comprendre le Comportement des Clients")
 st.subheader("Tendances d'Achat")
 monthly_orders = filtered_df.groupby('Month')['order_number'].count()
 st.line_chart(monthly_orders)   
 # 2. Optimiser les Performances des Produits
-st.header("2. Optimiser les Performances des Produits")
+#st.header("2. Optimiser les Performances des Produits")
 
 
 # Chiffre d'Affaires par Mois
-st.title('Chiffre d\'Affaires par Mois')
+#st.title('Chiffre d\'Affaires par Mois')
 st.subheader("Chiffre d'Affaires par Mois")
 monthly_revenue = filtered_df.groupby('Month')['Revenue'].sum()
 st.line_chart(monthly_revenue)
-st.markdown("Interprétation: ")
+
 
 
 # Chiffre d'Affaires par Produit
-st.title('Produit avec le Plus de Ventes')
-st.subheader("Top 10 des Produits par Chiffre d'Affaires")
+st.subheader('Produit avec le Plus de Ventes')
+#st.subheader("Top 10 des Produits par Chiffre d'Affaires")
 top_products_revenue = filtered_df.groupby('product_name')['Revenue'].sum().nlargest(10)
 st.bar_chart(top_products_revenue)
-st.markdown("Interprétation: ")
+
 
 
 # Mois avec le Plus de Ventes
-st.title('Mois avec le Plus de Ventes')
+#st.title('Mois avec le Plus de Ventes')
 st.subheader("Mois avec le Plus de Ventes")
 best_month = monthly_revenue.idxmax()
 st.write(f"Le mois avec le plus de ventes est {best_month} avec un chiffre d'affaires de {monthly_revenue.max():,.2f} USD.")
 
 
 # Analyse des Catégories Sous-Représentées
-st.title('Catégories Sous-Représentées')
-st.subheader("Analyse des Catégories Sous-Représentées")
+st.subheader('Catégories Sous-Représentées')
+#st.subheader("Analyse des Catégories Sous-Représentées")
 category_revenue = filtered_df.groupby('category')['Revenue'].sum()
 min_category = category_revenue.idxmin()
 min_category_revenue = category_revenue.min()
 st.write(f"La catégorie avec le revenu le plus bas est '{min_category}' avec un chiffre d'affaires de ${min_category_revenue:,.2f}.")
-st.markdown("Interprétation: ")
+
 
 # Analyse de la Croissance par Pays
 st.subheader("Analyse de la Croissance par Pays")
-revenue_growth_by_country = filtered_df.groupby(['cst_country', 'Month'])['Revenue'].sum().unstack().pct_change(axis=1).mean(axis=1)
+revenue_growth_by_country = filtered_df.groupby(['st_country', 'Month'])['Revenue'].sum().unstack().pct_change(axis=1).mean(axis=1)
 st.bar_chart(revenue_growth_by_country)
-st.markdown("Interprétation: ")
+
 
 # 5. Améliorer la Logistique et la Gestion des Stocks
-st.header("5. Améliorer la Logistique et la Gestion des Stocks")
+# st.header("5. Améliorer la Logistique et la Gestion des Stocks")
 
-# Délai de Livraison Moyen
-st.subheader("Délai de Livraison Moyen")
-avg_delivery_delay = filtered_df.groupby('store_id')['delivery_date'].mean().sort_values()
-st.bar_chart(avg_delivery_delay)
-st.markdown("Interprétation: ")
+# # Délai de Livraison Moyen
+# st.subheader("Délai de Livraison Moyen")
+# avg_delivery_delay = filtered_df.groupby('store_id')['delivery_date'].mean().sort_values()
+# st.bar_chart(avg_delivery_delay)
+# 
 
 # Quantités Vendues par Magasin
 st.subheader("Quantités Vendues par Magasin")
 qty_by_store = filtered_df.groupby('store_state')['quantity'].sum().sort_values(ascending=False)
 st.bar_chart(qty_by_store)
-st.markdown("Interprétation: ")
+
 
 
 # GRAPHIQUE 3: histogramme de répartition des achats par tranche d'âge
-st.title('Histogramme de répartition des achats par tranche d\'âge')
+# st.title('Histogramme de répartition des achats par tranche d\'âge')
+# # Calculer l'âge en années
+# today = pd.to_datetime('today')
+# df['age'] = today.year - df['cst_birthday'].dt.year 
+# # Définir les tranches d'âge
+# bins = [0, 18, 25, 35, 45, 55, 65, 100]
+# labels = ['0-17', '18-24', '25-34', '35-44', '45-54', '55-64', '65+']
+# df['age_group'] = pd.cut(df['age'], bins=bins, labels=labels, right=False)
+# # Agréger les quantités d'achats par tranche d'âge
+# age_distribution = df.groupby('age_group', observed=False)['total_sales'].sum().reset_index()
+# # Tracer l'histogramme avec Streamlit
+# st.title('Répartition du chiffre d\'affaires par tranche d\'âge')
+# fig, ax = plt.subplots(figsize=(10, 6))
+# sns.barplot(data=age_distribution, x='age_group', y='total_sales', palette='viridis', ax=ax)
+# ax.set_title('Répartition du chiffre d\'affaires par tranche d\'âge')
+# ax.set_xlabel('Tranche d\'âge')
+# ax.set_ylabel('Quantité d\'achats')
+# st.pyplot(fig)
+# #Titre de l'application
+# st.title('Histogramme de répartition des achats par tranche d\'âge')
+# # Titre de l'application
+# st.title('Histogramme de répartition des achats par tranche d\'âge')
+# Titre de l'application
+#st.subheadere('Histogramme de répartition des achats par tranche d\'âge')
 # Calculer l'âge en années
 today = pd.to_datetime('today')
 df['age'] = today.year - df['cst_birthday'].dt.year 
@@ -366,38 +404,84 @@ df['age_group'] = pd.cut(df['age'], bins=bins, labels=labels, right=False)
 # Agréger les quantités d'achats par tranche d'âge
 age_distribution = df.groupby('age_group', observed=False)['total_sales'].sum().reset_index()
 # Tracer l'histogramme avec Streamlit
-st.title('Répartition du chiffre d\'affaires par tranche d\'âge')
-fig, ax = plt.subplots(figsize=(10, 6))
-sns.barplot(data=age_distribution, x='age_group', y='total_sales', palette='viridis', ax=ax)
-ax.set_title('Répartition du chiffre d\'affaires par tranche d\'âge')
-ax.set_xlabel('Tranche d\'âge')
-ax.set_ylabel('Quantité d\'achats')
-st.pyplot(fig)
-#Titre de l'application
-st.title('Histogramme de répartition des achats par tranche d\'âge')
+st.subheader('Répartition du chiffre d\'affaires par tranche d\'âge')
+st.bar_chart(age_distribution.set_index('age_group'))
 
 
 
 
-st.title('Quantité d\'achats par catégorie')
+
+
+
+# st.title('Quantité d\'achats par catégorie')
+# # Assurez-vous que les dates sont bien formatées
+# df['delivery_date'] = pd.to_datetime(df['delivery_date'], errors='coerce')
+# # Extraire l'année
+# df['delivery_year'] = df['delivery_date'].dt.year
+# # Agréger les ventes totales par marque et par année
+# annual_brand_sales = df.groupby(['delivery_year', 'brand'])['total_sales'].sum().reset_index()
+# # Créer le graphique à barres empilées horizontal avec plotly
+# fig = px.bar(
+#     annual_brand_sales,
+#     x='total_sales',
+#     y='delivery_year',
+#     color='brand',
+#     orientation='h',
+#     title='Part de chaque marque dans le chiffre d\'affaires par année',
+#     labels={'total_sales': 'Chiffre d\'affaires (USD)', 'delivery_year': 'Année'},
+#     color_discrete_sequence=px.colors.sequential.Viridis,
+#     height=600
+# )
+# # Personnaliser la légende en haut
+# fig.update_layout(
+#     legend=dict(
+#         orientation='h',
+#         yanchor='bottom',
+#         y=1,
+#         xanchor='right',
+#         x=1
+#     ),
+#     xaxis_title='Chiffre d\'affaires (USD)',
+#     yaxis_title='Année',
+#     barmode='stack',
+#     title={
+#         'text': "",#Part de chaque marque dans le chiffre d'affaire par année",
+#         'x': 0.5, # Position horizontale du titre (0= gauche, 0.5=centre, 1=droite)
+#         'y': 0.95, # Position verticale du titre
+#         'xanchor': 'center',
+#         'yanchor': 'top',
+#         'font': dict(size=20, color='black', family='Arial')
+#     },
+# )
+# # Afficher le graphique avec Streamlit
+# #st.title('Part de chaque marque dans le chiffre d\'affaires par année')
+# st.plotly_chart(fig)
+
+# Titre de l'application
+st.subheader('Part de chaque marque dans le chiffre d\'affaires par année')
+
 # Assurez-vous que les dates sont bien formatées
-df['delivery_date'] = pd.to_datetime(df['delivery_date'], errors='coerce')
+#df['delivery_date'] = pd.to_datetime(df['delivery_date'], errors='coerce')
+
 # Extraire l'année
 df['delivery_year'] = df['delivery_date'].dt.year
+
 # Agréger les ventes totales par marque et par année
 annual_brand_sales = df.groupby(['delivery_year', 'brand'])['total_sales'].sum().reset_index()
-# Créer le graphique à barres empilées horizontal avec plotly
+
+# Créer le graphique à barres empilées horizontal avec Plotly
 fig = px.bar(
     annual_brand_sales,
     x='total_sales',
     y='delivery_year',
     color='brand',
     orientation='h',
-    title='Part de chaque marque dans le chiffre d\'affaires par année',
+    title='',
     labels={'total_sales': 'Chiffre d\'affaires (USD)', 'delivery_year': 'Année'},
     color_discrete_sequence=px.colors.sequential.Viridis,
     height=600
 )
+
 # Personnaliser la légende en haut
 fig.update_layout(
     legend=dict(
@@ -411,17 +495,18 @@ fig.update_layout(
     yaxis_title='Année',
     barmode='stack',
     title={
-        'text': "",#Part de chaque marque dans le chiffre d'affaire par année",
-        'x': 0.5, # Position horizontale du titre (0= gauche, 0.5=centre, 1=droite)
+        'text': '',
+        'x': 0.5,  # Position horizontale du titre (0= gauche, 0.5=centre, 1=droite)
         'y': 0.95, # Position verticale du titre
         'xanchor': 'center',
         'yanchor': 'top',
         'font': dict(size=20, color='black', family='Arial')
     },
 )
+
 # Afficher le graphique avec Streamlit
-#st.title('Part de chaque marque dans le chiffre d\'affaires par année')
 st.plotly_chart(fig)
+
 
 # # Agréger les ventes totales par année
 # annual_sales = df.groupby('order_year')['total_sales'].sum().reset_index()
@@ -466,13 +551,48 @@ st.plotly_chart(fig)
 # Extraire l'année
 #df['order_year'] = df['order_date'].dt.year
 
-st.title('Orders by Year')
+# st.title('Orders by Year')
+# # Agréger les ventes totales par année
+# annual_sales = df.groupby('order_year')['total_sales'].sum().reset_index()
+# # Définir l'index sur les années
+# annual_sales.set_index('order_year', inplace=True)
+# # Préparer les données pour la régression linéaire
+# X = np.array(annual_sales.index).reshape(-1, 1)
+# y = annual_sales['total_sales'].values
+# # Ajouter une colonne de biais (intercept) à X
+# X_b = np.c_[np.ones((X.shape[0], 1)), X]
+# # Calculer les coefficients de la régression linéaire
+# theta_best = np.linalg.inv(X_b.T.dot(X_b)).dot(X_b.T).dot(y)
+# # Prévisions
+# forecast_periods = 5
+# forecast_years = np.array(range(annual_sales.index.max() + 1, annual_sales.index.max() + 1 + forecast_periods)).reshape(-1, 1)
+# forecast_years_b = np.c_[np.ones((forecast_years.shape[0], 1)), forecast_years]
+# forecast = forecast_years_b.dot(theta_best)
+# # Créer un DataFrame pour les prévisions
+# forecast_df = pd.DataFrame({
+#     'forecast': forecast
+# }, index=forecast_years.flatten())
+# # Afficher les résultats avec Streamlit
+# st.title('Prévisions des ventes annuelles')
+# # Tracer les ventes réelles
+# fig, ax = plt.subplots()
+# ax.plot(annual_sales.index, annual_sales['total_sales'], label='Ventes réelles', marker='o')
+# # Tracer les prévisions
+# ax.plot(forecast_df.index, forecast_df['forecast'], label='Prévisions', marker='o')
+# ax.set_xlabel('Année')
+# ax.set_ylabel('Chiffre d\'affaires (USD)')
+# ax.legend()
+# st.pyplot(fig)
+
+
+
+
+# Titre de l'application
+#st.title('Orders by Year')
 # Agréger les ventes totales par année
 annual_sales = df.groupby('order_year')['total_sales'].sum().reset_index()
-# Définir l'index sur les années
-annual_sales.set_index('order_year', inplace=True)
 # Préparer les données pour la régression linéaire
-X = np.array(annual_sales.index).reshape(-1, 1)
+X = np.array(annual_sales['order_year']).reshape(-1, 1)
 y = annual_sales['total_sales'].values
 # Ajouter une colonne de biais (intercept) à X
 X_b = np.c_[np.ones((X.shape[0], 1)), X]
@@ -480,99 +600,138 @@ X_b = np.c_[np.ones((X.shape[0], 1)), X]
 theta_best = np.linalg.inv(X_b.T.dot(X_b)).dot(X_b.T).dot(y)
 # Prévisions
 forecast_periods = 5
-forecast_years = np.array(range(annual_sales.index.max() + 1, annual_sales.index.max() + 1 + forecast_periods)).reshape(-1, 1)
+forecast_years = np.array(range(annual_sales['order_year'].max() + 1, annual_sales['order_year'].max() + 1 + forecast_periods)).reshape(-1, 1)
 forecast_years_b = np.c_[np.ones((forecast_years.shape[0], 1)), forecast_years]
 forecast = forecast_years_b.dot(theta_best)
 # Créer un DataFrame pour les prévisions
 forecast_df = pd.DataFrame({
-    'forecast': forecast
-}, index=forecast_years.flatten())
+    'order_year': forecast_years.flatten(),
+    'total_sales': forecast
+})
+# Combiner les données réelles et les prévisions
+combined_df = pd.concat([annual_sales, forecast_df])
 # Afficher les résultats avec Streamlit
-st.title('Prévisions des ventes annuelles')
-# Tracer les ventes réelles
-fig, ax = plt.subplots()
-ax.plot(annual_sales.index, annual_sales['total_sales'], label='Ventes réelles', marker='o')
-# Tracer les prévisions
-ax.plot(forecast_df.index, forecast_df['forecast'], label='Prévisions', marker='o')
-ax.set_xlabel('Année')
-ax.set_ylabel('Chiffre d\'affaires (USD)')
-ax.legend()
-st.pyplot(fig)
-
+st.subheader('Prévisions des ventes annuelles')
+# Tracer les ventes réelles et les prévisions
+st.line_chart(combined_df.set_index('order_year'))
 # Afficher les prévisions sous forme de tableau
 st.write(forecast_df)
 
-st.title('Afficher les 10 produits les plus vendus')
+
+# st.title('Afficher les 10 produits les plus vendus')
+# # Calculer les 10 produits les plus vendus
+# top_products = df.groupby('product_name')['quantity'].sum().nlargest(10)
+# # Créer le graphique avec Matplotlib
+# fig, ax = plt.subplots(figsize=(12, 6))
+# top_products.plot(kind='barh', ax=ax)
+# ax.set_title('Top 10 des produits les plus vendus')
+# ax.set_xlabel('Quantité vendue')
+# ax.set_ylabel('Produit')
+# # Afficher le graphique avec Streamlit
+# st.title('Top 10 des produits les plus vendus')
+# st.pyplot(fig)
+# Titre de l'application
+st.subheader('Afficher les 10 produits les plus vendus')
 # Calculer les 10 produits les plus vendus
-top_products = df.groupby('product_name')['quantity'].sum().nlargest(10)
-# Créer le graphique avec Matplotlib
-fig, ax = plt.subplots(figsize=(12, 6))
-top_products.plot(kind='barh', ax=ax)
-ax.set_title('Top 10 des produits les plus vendus')
-ax.set_xlabel('Quantité vendue')
-ax.set_ylabel('Produit')
+top_products = df.groupby('product_name')['quantity'].sum().nlargest(10).reset_index()
 # Afficher le graphique avec Streamlit
-st.title('Top 10 des produits les plus vendus')
-st.pyplot(fig)
+st.bar_chart(top_products.set_index('product_name'))
 
 
 
 # Calculer les ventes par catégorie
-st.title('Répartition des ventes par catégorie')
-category_sales = df.groupby('category')['quantity'].sum()
-# Créer le graphique avec Matplotlib
-fig, ax = plt.subplots(figsize=(12, 6))
-category_sales.plot(kind='bar', ax=ax)
-ax.set_title('Répartition des ventes par catégorie')
-ax.set_xlabel('Catégorie')
-ax.set_ylabel('Quantité vendue')
+# st.title('Répartition des ventes par catégorie')
+# category_sales = df.groupby('category')['quantity'].sum()
+# # Créer le graphique avec Matplotlib
+# fig, ax = plt.subplots(figsize=(12, 6))
+# category_sales.plot(kind='bar', ax=ax)
+# ax.set_title('Répartition des ventes par catégorie')
+# ax.set_xlabel('Catégorie')
+# ax.set_ylabel('Quantité vendue')
+# # Afficher le graphique avec Streamlit
+# st.title('Répartition des ventes par catégorie')
+# st.pyplot(fig)
+# Titre de l'application
+st.subheader('Répartition des ventes par catégorie')
+# Calculer les ventes par catégorie
+category_sales = df.groupby('category')['quantity'].sum().reset_index()
 # Afficher le graphique avec Streamlit
-st.title('Répartition des ventes par catégorie')
-st.pyplot(fig)
+st.bar_chart(category_sales.set_index('category'))
+
 
 
 
 # Calculer le revenu mensuel
 #df['Revenue'] = df['qtity'] * df['unit_price_USD']
-monthly_revenue = df.groupby('Month')['Revenue'].sum()
-# Créer le graphique avec Matplotlib
-fig, ax = plt.subplots(figsize=(12, 6))
-monthly_revenue.plot(kind='line', ax=ax)
-ax.set_title('Revenu total par mois')
-ax.set_xlabel('Mois')
-ax.set_ylabel('Revenu en USD')
-# Afficher le graphique avec Streamlit
-st.title('Revenu total par mois')
-st.pyplot(fig)
+# monthly_revenue = df.groupby('Month')['Revenue'].sum()
+# # Créer le graphique avec Matplotlib
+# fig, ax = plt.subplots(figsize=(12, 6))
+# monthly_revenue.plot(kind='line', ax=ax)
+# ax.set_title('Revenu total par mois')
+# ax.set_xlabel('Mois')
+# ax.set_ylabel('Revenu en USD')
+# # Afficher le graphique avec Streamlit
+# st.title('Revenu total par mois')
+# st.pyplot(fig)
+# Titre de l'application
+# st.title('Revenu total par mois')
+# # Calculer le revenu total par mois
+# monthly_revenue = df.groupby('Month')['Revenue'].sum().reset_index()
+# # Afficher le graphique avec Streamlit
+# st.line_chart(monthly_revenue.set_index('Month'))
+
+
 
 
 #Calculer les ventes par couleur
-st.title('Couleurs des produits les plus vendus')
-color_sales = df.groupby('color')['quantity'].sum()
-# Créer le graphique avec Matplotlib
-fig, ax = plt.subplots(figsize=(12, 6))
-color_sales.plot(kind='bar', ax=ax)
-ax.set_title('Couleurs des produits les plus vendus')
-ax.set_xlabel('Couleur')
-ax.set_ylabel('Quantité vendue')
+# st.title('Couleurs des produits les plus vendus')
+# color_sales = df.groupby('color')['quantity'].sum()
+# # Créer le graphique avec Matplotlib
+# fig, ax = plt.subplots(figsize=(12, 6))
+# color_sales.plot(kind='bar', ax=ax)
+# ax.set_title('Couleurs des produits les plus vendus')
+# ax.set_xlabel('Couleur')
+# ax.set_ylabel('Quantité vendue')
+# # Afficher le graphique avec Streamlit
+# st.title('Couleurs des produits les plus vendus')
+# st.pyplot(fig)
+# Titre de l'application
+st.subheader('Couleurs des produits les plus vendus')
+# Calculer les ventes par couleur
+color_sales = df.groupby('color')['quantity'].sum().reset_index()
 # Afficher le graphique avec Streamlit
-st.title('Couleurs des produits les plus vendus')
-st.pyplot(fig)
+st.bar_chart(color_sales.set_index('color'))
+
+
+
 
 
 # Extraire le jour de la semaine
-df['DayOfWeek'] = df['order_date'].dt.day_name()
+# df['DayOfWeek'] = df['order_date'].dt.day_name()
+# # Calculer le nombre de commandes par jour de la semaine
+# day_of_week_orders = df['DayOfWeek'].value_counts()
+# # Créer le graphique avec Matplotlib
+# fig, ax = plt.subplots(figsize=(12, 6))
+# day_of_week_orders.plot(kind='bar', ax=ax)
+# ax.set_title('Distribution des commandes par jour de la semaine')
+# ax.set_xlabel('Jour de la semaine')
+# ax.set_ylabel('Nombre de commandes')
+# # Afficher le graphique avec Streamlit
+# st.title('Distribution des commandes par jour de la semaine')
+# st.pyplot(fig)
+# Titre de l'application
+st.subheader('Distribution des commandes par jour de la semaine')
 # Calculer le nombre de commandes par jour de la semaine
-day_of_week_orders = df['DayOfWeek'].value_counts()
-# Créer le graphique avec Matplotlib
-fig, ax = plt.subplots(figsize=(12, 6))
-day_of_week_orders.plot(kind='bar', ax=ax)
-ax.set_title('Distribution des commandes par jour de la semaine')
-ax.set_xlabel('Jour de la semaine')
-ax.set_ylabel('Nombre de commandes')
+df['DayOfWeek'] = df['order_date'].dt.day_name()
+day_of_week_orders = df['DayOfWeek'].value_counts().reset_index()
+day_of_week_orders.columns = ['DayOfWeek', 'Orders']
 # Afficher le graphique avec Streamlit
-st.title('Distribution des commandes par jour de la semaine')
-st.pyplot(fig)
+st.bar_chart(day_of_week_orders.set_index('DayOfWeek'))
+
+
+
+
+
 # # Ventes par année avec prévision
 # st.header("Ventes par année et prévisions")
 # df['year'] = df['order_date'].dt.year
