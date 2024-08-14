@@ -14,33 +14,32 @@ from tabulate import tabulate
 
 
 from streamlit_extras.metric_cards import style_metric_cards
-# st.set_option('deprecation.showPyplotGlobalUse', False)
-
-#uncomment this line if you use mysql
-#from query import *
 
 st.set_page_config(page_title="Dashboard",page_icon="🛒",layout="wide")
+
+# le logo
 st.sidebar.image("image/logo.png",caption="")
 
+# le titre de la page
 st.title("TABLEAU DE BORD DE e-SUNU SHOP")
+
+# petite description
 
 st.markdown("""
 Ce tableau de bord vous permet d'explorer les données commerciales à travers divers graphiques interactifs.
 Utilisez les filtres et les graphiques pour obtenir des insights précieux sur le comportement des clients, les performances des produits.
 """)
-        # st.markdown("<h4 class='centered'>Répartition du chiffre d''affaires par tranche d'âge'</h4>", unsafe_allow_html=True)
 
-#all graphs we use custom css not streamlit 
 theme_plotly = None 
 
-
-# load Style css
+# ouvrir le fichier css
 with open('style.css')as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html = True)
 
 
 
 # ----------------------IMPORTATION DES DONNEES------------------------------
+@st.cache_data
 def importation(path):
     return pd.read_csv(path, encoding='ISO-8859-1')
 
@@ -48,7 +47,6 @@ def importation(path):
 print("TABLE CUSTOMERS")
 cst_path = "./datasets/Customers.csv"
 customer = importation(cst_path)
-
 
 # exchange
 print("TABLE EXCHANGE")
@@ -221,7 +219,7 @@ selected_category=st.sidebar.multiselect(
 )
 
 selected_color =st.sidebar.multiselect(
-    "Sélectionnez un ou plusieurs années",
+    "Sélectionnez une ou plusieurs couleurs",
      options=df["color"].unique(),
 )
 
@@ -279,6 +277,7 @@ def Home():
         df_selection['delivery_delay'] = df_selection['delivery_delay'].apply(lambda x: mean_delivery_delay if x < 0 else x)
 
     average_delivery_time = df_selection['delivery_delay'].mean()
+
     # Affichage des KPI
     total1, total2, total3, total4 = st.columns(4, gap="small")
 
@@ -328,13 +327,26 @@ def graphs():
     st.markdown(title_style, unsafe_allow_html=True)
 
     with col1:
-        st.markdown("<h4 class='centered'>Distribution des commandes par jour de la semaine</h4>", unsafe_allow_html=True)
+        st.markdown("<h4 class='centered'>Commandes par jour de la semaine</h4>", unsafe_allow_html=True)
 
         df['day_of_week'] = df_selection['order_date'].dt.day_name()
         day_of_week_orders = df['day_of_week'].value_counts().reset_index()
-        day_of_week_orders.columns = ['day_of_week', 'Orders']
+        day_of_week_orders.columns = ['day_of_week', 'orders']
 
-        st.bar_chart(day_of_week_orders.set_index('day_of_week'))
+        fig = px.bar(
+            day_of_week_orders,
+            x='day_of_week',
+            y='orders',
+            color='orders',  # Utilisez 'orders' pour la coloration des barres
+            color_continuous_scale=px.colors.sequential.Viridis,  # Palette de couleurs
+            labels={'day_of_week': 'Jour de la semaine', 'orders': 'Commandes'},
+        )
+        # Mise à jour de la mise en page pour masquer la légende
+        fig.update_layout(
+            showlegend=False  # Masquer la légende
+        )
+        # Afficher le graphique dans Streamlit
+        st.plotly_chart(fig, use_container_width=True)
 
 
     with col2:
@@ -347,7 +359,9 @@ def graphs():
             sales_by_country,
             values=sales_by_country.values,
             names=sales_by_country.index,
-            template='plotly_white'
+            template='plotly_white',
+            color_discrete_sequence=px.colors.sequential.Viridis,
+
         )
         
         fig_growth.update_layout(
@@ -362,7 +376,8 @@ def graphs():
             ),
             
         )
-     
+        with st.container():
+            st.plotly_chart(fig_growth, use_container_width=True)
     
     with col3:
         st.markdown("<h4 class='centered'>Top 10-produits les plus vendus</h4>", unsafe_allow_html=True)
@@ -399,23 +414,37 @@ def graphs2():
 
 
     with col1:
-        st.markdown("<h4 class='centered'>Répartition du chiffre d''affaires par tranche d'âge'</h4>", unsafe_allow_html=True)
-        today = pd.to_datetime('today')
-        df_selection['age'] = today.year - df_selection['cst_birthday'].dt.year 
-        bins = [0, 18, 25, 35, 45, 55, 65, 100]
-        labels = ['0-17', '18-24', '25-34', '35-44', '45-54', '55-64', '65+']
-        df_selection['age_group'] = pd.cut(df_selection['age'], bins=bins, labels=labels, right=False)
+        
+        with st.container():
+            st.markdown("<h4 class='centered'>Répartition du chiffre d'affaires par tranche d'âge</h4>", unsafe_allow_html=True)
+            today = pd.to_datetime('today')
+            df_selection['age'] = today.year - df_selection['cst_birthday'].dt.year
+            bins = [0, 18, 25, 35, 45, 55, 65, 100]
+            labels = ['0-17', '18-24', '25-34', '35-44', '45-54', '55-64', '65+']
+            df_selection['age_group'] = pd.cut(df_selection['age'], bins=bins, labels=labels, right=False)
 
-        age_distribution = df_selection.groupby('age_group', observed=False)['total_sales'].sum().reset_index()
-    
-        st.bar_chart(age_distribution.set_index('age_group'))
+            age_distribution = df_selection.groupby('age_group', observed=False)['total_sales'].sum().reset_index()
+
+            # Créer un graphique à barres avec Plotly
+            fig = px.bar(
+                age_distribution,
+                x='age_group',
+                y='total_sales',
+                color='age_group',  # Utilise la colonne 'age_group' pour la coloration
+                color_discrete_sequence=px.colors.sequential.Viridis,  # Choisissez une palette de couleurs
+                labels={'age_group': 'Tranche d\'âge', 'total_sales': 'Chiffre d\'affaires (USD)'},
+            )
+            
+            # Afficher le graphique dans Streamlit
+            st.plotly_chart(fig, use_container_width=True)
 
     with col2:
         # Titre de l'application
-        st.markdown("<h4 class='centered'>Part de chaque marque dans le chiffre d\'affaires par année</h4>", unsafe_allow_html=True)
+        st.markdown("<h4 class='centered'>Part de chaque marque dans le chiffre d\'affaires</h4>", unsafe_allow_html=True)
 
         # Extraire l'année
         df_selection['delivery_year'] = df_selection['delivery_date'].dt.year
+
 
         # Agréger les ventes totales par marque et par année
         annual_brand_sales = df_selection.groupby(['delivery_year', 'brand'])['total_sales'].sum().reset_index()
@@ -457,6 +486,7 @@ def graphs2():
             # Affichage du graphique dans Streamlit
         with st.container():
             st.plotly_chart(fig, use_container_width=True)
+        
 
 
 
@@ -480,60 +510,53 @@ def graphs3():
         height: 100%;
 
    }
+
     </style>"""
-    st.markdown("<h4 class='centered'>Evolution des ventes par année et prévision</h4>", unsafe_allow_html=True)
-        
-    df_selection['order_date'] = pd.to_datetime(df_selection['order_date'])
+    st.markdown("<h4 class='centered'>Évolution des ventes par année et prévision</h4>", unsafe_allow_html=True)
+    
+    # Vérifiez si une seule année est sélectionnée
+    selected_years = df_selection['order_year'].unique()
+    if len(selected_years) == 1:
+        st.error("Veuillez sélectionner plusieurs années pour voir l'évolution des ventes et les prévisions.")
+        return
 
-    # Extraire le mois de la commande
-    df_selection['order_year'] = df_selection['order_year'].dt.strftime('%Y')
-
-    # Grouper par mois et calculer le total des ventes
+    # Calculer les ventes totales par année
     annual_sales = df_selection.groupby('order_year')['total_sales'].sum().reset_index()
 
-    # Ordonner les mois correctement
-    annual_sales['order_year'] = pd.Categorical(annual_sales['order_year'], ordered=True)
-
-    # Graphique
-    plt.figure(figsize=(14, 7))
-    sns.lineplot(data=annual_sales, x='order_year', y='total_sales', marker='o')
-   
-   
-    # plt.xlabel('Mois')
-    # plt.ylabel('Ventes totales (USD)')
-    # plt.xticks(rotation=45)
-    # plt.show()
-    annual_sales = df_selection.groupby('order_year')['total_sales'].sum().reset_index()
     # Préparer les données pour la régression linéaire
     X = np.array(annual_sales['order_year']).reshape(-1, 1)
     y = annual_sales['total_sales'].values
-    # Ajouter une colonne de biais (intercept) à X
     X_b = np.c_[np.ones((X.shape[0], 1)), X]
-    # Calculer les coefficients de la régression linéaire
     theta_best = np.linalg.inv(X_b.T.dot(X_b)).dot(X_b.T).dot(y)
-    # Prévisions
+    
+    # Prévisions pour les 5 prochaines années
     forecast_periods = 5
     forecast_years = np.array(range(annual_sales['order_year'].max() + 1, annual_sales['order_year'].max() + 1 + forecast_periods)).reshape(-1, 1)
     forecast_years_b = np.c_[np.ones((forecast_years.shape[0], 1)), forecast_years]
     forecast = forecast_years_b.dot(theta_best)
+
     # Créer un DataFrame pour les prévisions
     forecast_df = pd.DataFrame({
         'order_year': forecast_years.flatten(),
         'total_sales': forecast
     })
-    # Combiner les données réelles et les prévisions
-    combined_df = pd.concat([annual_sales, forecast_df])
-    # Afficher les résultats avec Streamlit
-    st.subheader('Prévisions des ventes annuelles')
-    # Tracer les ventes réelles et les prévisions
-    st.line_chart(combined_df.set_index('order_year'))
+    
+    # Tracer les prévisions
+    combined_df = pd.concat([ annual_sales,forecast_df] )
+
+    # Graphique avec Plotly
+    fig = px.line(
+        combined_df,
+        x='order_year',
+        y='total_sales',
+        markers=True,
+        labels={'order_year': 'Année', 'total_sales': 'Chiffre d\'affaires (USD)'}
+    )
     # Afficher les prévisions sous forme de tableau
-    # st.write(forecast_df)
+    st.write(forecast_df)
 
-
-
-
-
+    # Afficher le graphique dans Streamlit
+    st.plotly_chart(fig, use_container_width=True)
 
 # menu pour affichage des graphiques
 def sideBar():
