@@ -46,28 +46,28 @@ def importation(path):
 
 # customers
 print("TABLE CUSTOMERS")
-cst_path = "../datasets/Customers.csv"
+cst_path = "./datasets/Customers.csv"
 customer = importation(cst_path)
 
 
 # exchange
 print("TABLE EXCHANGE")
-exc_path= "../datasets/Exchange_Rates.csv"
+exc_path= "./datasets/Exchange_Rates.csv"
 exchange = importation(exc_path)
 
 # product
 print("TABLE PRODUCT")
-prod_path= "../datasets/Products.csv"
+prod_path= "./datasets/Products.csv"
 product = importation(prod_path)
 
 # sales
 print("TABLE SALES")
-sls_path= "../datasets/Sales.csv"
+sls_path= "./datasets/Sales.csv"
 sales = importation(sls_path)
 
 # store
 print("TABLE STORE")
-str_path= "../datasets/Stores.csv"
+str_path= "./datasets/Stores.csv"
 store = importation(str_path)
 
 
@@ -360,21 +360,9 @@ def graphs():
                 xanchor="right",
                 x=0.95
             ),
-            # plot_bgcolor='rgba(0,0,0,0)',  # Fond du graphique
-            paper_bgcolor='rgba(0,0,0,0)',  # Fond du papier (canvas)
-            xaxis=dict(showline=False, showgrid=False, zeroline=False),
-            yaxis=dict(showline=False, showgrid=False, zeroline=False)
+            
         )
-        title='Prévisions des Ventes Annuelles',
-        xaxis_title='Année',
-        yaxis_title='Chiffre d\'Affaires (USD)',
-        legend_title='Légende',
-        font=dict(size=14),
-        plot_bgcolor='rgba(0,0,0,0)',  # Fond du graphique
-        paper_bgcolor='rgba(0,0,0,0)',  # Fond du papier (canvas)
-        xaxis=dict(showline=False, showgrid=False, zeroline=False),
-        yaxis=dict(showline=False, showgrid=False, zeroline=False)
-        st.plotly_chart(fig_growth, use_container_width=True)
+     
     
     with col3:
         st.markdown("<h4 class='centered'>Top 10-produits les plus vendus</h4>", unsafe_allow_html=True)
@@ -414,47 +402,13 @@ def graphs2():
         st.markdown("<h4 class='centered'>Répartition du chiffre d''affaires par tranche d'âge'</h4>", unsafe_allow_html=True)
         today = pd.to_datetime('today')
         df_selection['age'] = today.year - df_selection['cst_birthday'].dt.year 
-        # Définir les tranches d'âge
         bins = [0, 18, 25, 35, 45, 55, 65, 100]
         labels = ['0-17', '18-24', '25-34', '35-44', '45-54', '55-64', '65+']
         df_selection['age_group'] = pd.cut(df_selection['age'], bins=bins, labels=labels, right=False)
 
         age_distribution = df_selection.groupby('age_group', observed=False)['total_sales'].sum().reset_index()
-          # Définir une palette de couleurs pour les tranches d'âge
-        # color_palette = px.colors.qualitative.Plotly
-        # num_colors = len(age_distribution['age_group'])
-        # colors = color_palette[:num_colors]
-        
-        # fig = px.bar(
-        #     age_distribution,
-        #     x='age_group',
-        #     y='total_sales',
-        #     color='age_group',
-        #     color_discrete_sequence=colors,
-        #     title="Répartition du chiffre d'affaires par tranche d'âge",
-        #     labels={'age_group': 'Tranche d\'âge', 'total_sales': 'Chiffre d\'affaires'},
-        #     template='plotly_white'
-        # )
-
-        # fig.update_layout(
-        #     xaxis_title='Tranche d\'âge',
-        #     yaxis_title='Chiffre d\'affaires',
-        #     xaxis=dict(showgrid=True, gridcolor='#cecdcd'),
-        #     yaxis=dict(showgrid=True, gridcolor='#cecdcd'),
-        #     plot_bgcolor='rgba(0,0,0,0)',
-        #     paper_bgcolor='rgba(0, 0, 0, 0)',
-        #     font=dict(color="black"))
-
+    
         st.bar_chart(age_distribution.set_index('age_group'))
-    # Assurez-vous que les dates sont bien formatées
-    # df['order_date'] = pd.to_datetime(df['order_date'], errors='coerce')
-
-    # # Extraire l'année
-    # df['order_year'] = df['order_date'].dt.year
-
-    # Agréger les ventes totales par marque et par année
-
-
 
     with col2:
         # Titre de l'application
@@ -527,9 +481,28 @@ def graphs3():
 
    }
     </style>"""
-        # Titre de l'application
-    #st.title('Orders by Year')
-    # Agréger les ventes totales par année
+    st.markdown("<h4 class='centered'>Evolution des ventes par année et prévision</h4>", unsafe_allow_html=True)
+        
+    df_selection['order_date'] = pd.to_datetime(df_selection['order_date'])
+
+    # Extraire le mois de la commande
+    df_selection['order_year'] = df_selection['order_year'].dt.strftime('%Y')
+
+    # Grouper par mois et calculer le total des ventes
+    annual_sales = df_selection.groupby('order_year')['total_sales'].sum().reset_index()
+
+    # Ordonner les mois correctement
+    annual_sales['order_year'] = pd.Categorical(annual_sales['order_year'], ordered=True)
+
+    # Graphique
+    plt.figure(figsize=(14, 7))
+    sns.lineplot(data=annual_sales, x='order_year', y='total_sales', marker='o')
+   
+   
+    # plt.xlabel('Mois')
+    # plt.ylabel('Ventes totales (USD)')
+    # plt.xticks(rotation=45)
+    # plt.show()
     annual_sales = df_selection.groupby('order_year')['total_sales'].sum().reset_index()
     # Préparer les données pour la régression linéaire
     X = np.array(annual_sales['order_year']).reshape(-1, 1)
