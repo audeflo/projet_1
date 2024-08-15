@@ -234,12 +234,11 @@ Utilisez les filtres et les graphiques pour obtenir des insights précieux sur l
 
 # Sidebar pour les filtres
 st.sidebar.header("Filtres")
-selected_country = st.sidebar.multiselect("Sélectionnez un ou plusieurs Pays", df['cst_country'].unique())
 selected_category = st.sidebar.multiselect("Sélectionnez une ou plusieurs Catégories", df['category'].unique())
-selected_color = st.sidebar.multiselect("Sélectionnez une ou plusieurs Couleurs ", df['color'].unique())
 selected_month = st.sidebar.multiselect("Sélectionnez un ou plusieurs Mois", df['Month'].astype(str).unique())
+selected_color = st.sidebar.multiselect("Sélectionnez une ou plusieurs Couleurs ", df['color'].unique())
 selected_year = st.sidebar.multiselect("Sélectionnez un ou plusieurs Années", df['order_year'].unique())
-
+selected_country = st.sidebar.multiselect("Sélectionnez un ou plusieurs Pays", df['cst_country'].unique())
 
 
 filtered_df = df[
@@ -367,16 +366,12 @@ st.bar_chart(qty_by_store)
 # Calculer l'âge en années
 today = pd.to_datetime('today')
 df['age'] = today.year - df['cst_birthday'].dt.year 
-if 'age' not in filtered_df.columns:
-    filtered_df['age'] = today.year - filtered_df['cst_birthday'].dt.year
 # Définir les tranches d'âge
 bins = [0, 18, 25, 35, 45, 55, 65, 100]
 labels = ['0-17', '18-24', '25-34', '35-44', '45-54', '55-64', '65+']
 df['age_group'] = pd.cut(df['age'], bins=bins, labels=labels, right=False)
-if 'age_group' not in filtered_df.columns:
-    filtered_df['age_group'] = pd.cut(filtered_df['age'], bins=bins, labels=labels, right=False)
 # Agréger les quantités d'achats par tranche d'âge
-age_distribution = filtered_df.groupby('age_group', observed=False)['total_sales'].sum().reset_index()
+age_distribution = df.groupby('age_group', observed=False)['total_sales'].sum().reset_index()
 # Tracer l'histogramme avec Streamlit
 st.subheader('Répartition du chiffre d\'affaires par tranche d\'âge')
 st.bar_chart(age_distribution.set_index('age_group'))
@@ -393,11 +388,9 @@ st.subheader('Part de chaque marque dans le chiffre d\'affaires par année')
 
 # Extraire l'année
 df['delivery_year'] = df['delivery_date'].dt.year
-if 'delivery_year' not in filtered_df.columns:
-    filtered_df['delivery_year'] = df['delivery_date'].dt.year
 
 # Agréger les ventes totales par marque et par année
-annual_brand_sales = filtered_df.groupby(['delivery_year', 'brand'])['total_sales'].sum().reset_index()
+annual_brand_sales = df.groupby(['delivery_year', 'brand'])['total_sales'].sum().reset_index()
 
 # Créer le graphique à barres empilées horizontal avec Plotly
 fig = px.bar(
@@ -442,7 +435,7 @@ st.plotly_chart(fig)
 # Titre de l'application
 #st.title('Orders by Year')
 # Agréger les ventes totales par année
-annual_sales = filtered_df.groupby('order_year')['total_sales'].sum().reset_index()
+annual_sales = df.groupby('order_year')['total_sales'].sum().reset_index()
 # Préparer les données pour la régression linéaire
 X = np.array(annual_sales['order_year']).reshape(-1, 1)
 y = annual_sales['total_sales'].values
@@ -475,15 +468,15 @@ st.write(forecast_df)
 # Titre de l'application
 st.subheader('Afficher les 10 produits les plus vendus')
 # Calculer les 10 produits les plus vendus
-top_products = filtered_df.groupby('product_name')['quantity'].sum().nlargest(10)#.reset_index()
+top_products = df.groupby('product_name')['quantity'].sum().nlargest(10).reset_index()
 # Afficher le graphique avec Streamlit
-#st.bar_chart(top_products.set_index('product_name'))
-st.dataframe(top_products) #.set_index('product_name'))
+st.bar_chart(top_products.set_index('product_name'))
+
 
 
 st.subheader('Répartition des ventes par catégorie')
 # # Calculer les ventes par catégorie
-fig = px.pie(filtered_df, values='quantity', names='category', title='RATINGS BY REGIONS')
+fig = px.pie(df, values='quantity', names='category', title='RATINGS BY REGIONS')
 fig.update_layout(legend_title="Regions", legend_y=0.9)
 fig.update_traces(textinfo='percent+label', textposition='inside')
 st.plotly_chart(fig, use_container_width=True, theme="theme_plotly")
@@ -493,7 +486,7 @@ st.plotly_chart(fig, use_container_width=True, theme="theme_plotly")
 # Titre de l'application
 st.subheader('Couleurs des produits les plus vendus')
 # Calculer les ventes par couleur
-color_sales = filtered_df.groupby('color')['quantity'].sum().reset_index()
+color_sales = df.groupby('color')['quantity'].sum().reset_index()
 # Afficher le graphique avec Streamlit
 st.bar_chart(color_sales.set_index('color'))
 
