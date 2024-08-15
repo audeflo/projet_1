@@ -443,9 +443,14 @@ def graphs2():
         st.markdown("<h4 class='centered'>Part de chaque marque dans le chiffre d\'affaires</h4>", unsafe_allow_html=True)
 
         # Extraire l'année
-        df_selection['delivery_year'] = df_selection['delivery_date'].dt.year
+        df['delivery_year'] = df['delivery_date'].dt.year
+        df['delivery_year'] = df['delivery_date'].dt.year
+        # Filtrer df en fonction des années sélectionnées
 
+        if 'delivery_year' not in df_selection.columns:
+            df_selection['delivery_year'] = df['delivery_date'].dt.year
 
+        
         # Agréger les ventes totales par marque et par année
         annual_brand_sales = df_selection.groupby(['delivery_year', 'brand'])['total_sales'].sum().reset_index()
 
