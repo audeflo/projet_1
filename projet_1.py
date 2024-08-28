@@ -210,7 +210,7 @@ df['month'] = pd.Categorical(df['order_month'], categories=order_month, ordered=
 
 selected_country=st.sidebar.multiselect(
     "Sélectionnez un ou plusieurs pays",
-     options=df['st_country'].unique(),
+     options=df['cst_country'].unique(),
 )
 
 selected_category=st.sidebar.multiselect(
@@ -238,7 +238,7 @@ df_selection = df[
     (df['month'].astype(str).isin(selected_month) if selected_month else df['month'].notnull()) &
     (df['color'].isin(selected_color) if selected_color else df['color'].notnull())&
     (df['order_year'].isin(selected_year) if selected_year else df['order_year'].notnull())&
-    (df['st_country'].isin(selected_country) if selected_country else df['st_country'].notnull())
+    (df['cst_country'].isin(selected_country) if selected_country else df['cst_country'].notnull())
 ]
 
 
@@ -275,9 +275,6 @@ def Home():
         df_selection['delivery_delay'] = df_selection['delivery_delay'].dt.days
         mean_delivery_delay = df_selection[df_selection['delivery_delay'] >= 0]['delivery_delay'].mean()
         df_selection['delivery_delay'] = df_selection['delivery_delay'].apply(lambda x: mean_delivery_delay if x < 0 else x)
-        
-
-
     average_delivery_time = df_selection['delivery_delay'].mean()
 
     # Affichage des KPI
