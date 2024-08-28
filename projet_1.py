@@ -13,7 +13,10 @@ import plotly.graph_objs as go
 from tabulate import tabulate
 
 
+
 #from streamlit_extras.metric_cards import style_metric_cards
+
+
 
 st.set_page_config(page_title="Dashboard",page_icon="🛒",layout="wide")
 
@@ -39,7 +42,10 @@ with open('style.css')as f:
 
 
 # ----------------------IMPORTATION DES DONNEES------------------------------
+
 @st.cache #_data
+
+
 def importation(path):
     return pd.read_csv(path, encoding='ISO-8859-1')
 
@@ -210,7 +216,9 @@ df['month'] = pd.Categorical(df['order_month'], categories=order_month, ordered=
 
 selected_country=st.sidebar.multiselect(
     "Sélectionnez un ou plusieurs pays",
+
      options=df['cst_country'].unique(),
+
 )
 
 selected_category=st.sidebar.multiselect(
@@ -238,7 +246,9 @@ df_selection = df[
     (df['month'].astype(str).isin(selected_month) if selected_month else df['month'].notnull()) &
     (df['color'].isin(selected_color) if selected_color else df['color'].notnull())&
     (df['order_year'].isin(selected_year) if selected_year else df['order_year'].notnull())&
+
     (df['cst_country'].isin(selected_country) if selected_country else df['cst_country'].notnull())
+
 ]
 
 
@@ -275,7 +285,7 @@ def Home():
         df_selection['delivery_delay'] = df_selection['delivery_delay'].dt.days
         mean_delivery_delay = df_selection[df_selection['delivery_delay'] >= 0]['delivery_delay'].mean()
         df_selection['delivery_delay'] = df_selection['delivery_delay'].apply(lambda x: mean_delivery_delay if x < 0 else x)
-    average_delivery_time = df_selection['delivery_delay'].mean()
+        average_delivery_time = df_selection['delivery_delay'].mean()
 
     # Affichage des KPI
     total1, total2, total3, total4 = st.columns(4, gap="small")
